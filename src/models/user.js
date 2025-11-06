@@ -1,9 +1,8 @@
 import { Schema, model } from 'mongoose';
 
-const userSchema = Schema(
+const userSchema = new Schema(
   {
     name: { type: String, required: true },
-    phoneNumber: { type: String, required: true },
     email: {
       type: String,
       required: true,
@@ -13,7 +12,16 @@ const userSchema = Schema(
     },
     password: { type: String, required: true },
   },
-  { timestamps: true },
+  {
+    timestamps: true,
+    versionKey: false,
+  },
 );
 
-export const Contact = model('User', userSchema);
+userSchema.methods.toJSON = function () {
+  const obj = this.toObject();
+  delete obj.password;
+  return obj;
+};
+
+export const UserCollection = model('User', userSchema);

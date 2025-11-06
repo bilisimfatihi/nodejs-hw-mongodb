@@ -15,12 +15,16 @@ export const getContactsController = async (req, res) => {
   const { sortBy, sortOrder } = parseSortParams(req.query);
   const { filter } = parseFilterParams(req.query);
 
+  // userId'yi filtreye ekle
+  const userId = req.user._id;
+  const userFilter = { ...filter, userId };
+
   const data = await getAllContacts({
     page,
     perPage,
     sortBy,
     sortOrder,
-    filter,
+    filter: userFilter,
   });
 
   res.status(200).json({
@@ -60,6 +64,7 @@ export const createContactController = async (req, res) => {
     email,
     isFavourite,
     contactType,
+    userId: req.user._id,
   });
 
   res.status(201).json({

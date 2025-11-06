@@ -2,7 +2,8 @@ import express from 'express';
 import { pinoHttp } from 'pino-http';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import contactRouter from './routers/contacts.js';
+import cookieParser from 'cookie-parser';
+import routers from './routers/index.js';
 import { errorHandler } from './middlewares/errorHandler.js';
 import { notFoundHandler } from './middlewares/notFoundHandler.js';
 
@@ -16,22 +17,17 @@ export const setupServer = () => {
   //middleware
   app.use(cors());
   app.use(express.json());
+  app.use(cookieParser());
 
   //pinohttp and pino pretty
   app.use(pinoHttp());
 
-  // Basic route
-  app.get('/', (req, res) => {
-    res.json({
-      message: 'Server is running',
-      status: 'success',
-      code: 200,
-    });
-  });
-  // routes
-  app.use(contactRouter);
+  // routers
+  app.use(routers);
+
   // not found handler (404)
   app.use('', notFoundHandler);
+
   // error handler
   app.use(errorHandler);
 

@@ -1,6 +1,6 @@
-import { Contact } from '../db/contactModel.js';
 import { calculatePaginationData } from '../utils/calculatePaginationData.js';
 import { SORT_ORDER } from '../constants/constants.js';
+import { ContactCollection } from '../models/contact.js';
 
 export const getAllContacts = async ({
   page = 1,
@@ -12,8 +12,8 @@ export const getAllContacts = async ({
   const limit = perPage;
   const skip = (page - 1) * perPage;
 
-  const dataCount = await Contact.countDocuments(filter);
-  const data = await Contact.find(filter)
+  const dataCount = await ContactCollection.countDocuments(filter);
+  const data = await ContactCollection.find(filter)
     .skip(skip)
     .limit(limit)
     .sort({ [sortBy]: sortOrder })
@@ -24,23 +24,27 @@ export const getAllContacts = async ({
 };
 
 export const getContactById = async (id) => {
-  const data = await Contact.findById(id);
+  const data = await ContactCollection.findById(id);
   return data;
 };
 
 export const createContact = async (payload) => {
-  const data = await Contact.create(payload);
+  const data = await ContactCollection.create(payload);
   return data;
 };
 
 export const updateContact = async (contactId, payload) => {
-  const data = await Contact.findOneAndUpdate({ _id: contactId }, payload, {
-    new: true,
-  });
+  const data = await ContactCollection.findOneAndUpdate(
+    { _id: contactId },
+    payload,
+    {
+      new: true,
+    },
+  );
   return data;
 };
 
 export const deleteContact = async (contactId) => {
-  const data = await Contact.findByIdAndDelete(contactId);
+  const data = await ContactCollection.findByIdAndDelete(contactId);
   return data;
 };
