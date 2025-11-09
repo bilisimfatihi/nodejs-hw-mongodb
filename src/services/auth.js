@@ -1,9 +1,18 @@
 import { randomBytes } from 'crypto';
+import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
 import createHttpError from 'http-errors';
 import { UserCollection } from '../models/user.js';
 import { SessionCollection } from '../models/session.js';
-import { FIFTEEN_MINUTES, ONE_DAY } from '../constants/constants.js';
+import {
+  FIFTEEN_MINUTES,
+  ONE_DAY,
+  SMTP,
+  JWT_SECRET,
+  JWT_RESET_EXPIRES,
+} from '../constants/constants.js';
+import { env } from '../utils/env.js';
+import { sendEmail } from '../utils/sendMail.js';
 
 const createSession = () => {
   const accessToken = randomBytes(30).toString('base64');
@@ -76,4 +85,68 @@ export const refreshUsersSession = async ({ sessionId, refreshToken }) => {
     userId: session.userId,
     ...newSession,
   });
+};
+
+export const requestResetToken = async (email) => {
+  const user = await UserCollection.findOne({ email });
+  if (!user) {
+    throw createHttpError(404, 'User not found');
+  }
+
+  const resetToken = jwt.sign(
+    {
+      sub: user._id,
+      email,
+    },
+    env(JWT_SECRET),
+    {
+      expiresIn: env(JWT_RESET_EXPIRES),
+    },
+  );
+
+  try {
+    await sendEmail({
+      from: env(SMTP.SMTP_FROM),
+      to: email,
+      subject: 'Reset your password',
+      html: `<p>Click <a href="${env(
+        'APP_DOMAIN',
+      )}reset-password?token=${resetToken}">here</a> to reset your password!</p>`,
+    });
+    // eslint-disable-next-line no-unused-vars
+  } catch (err) {
+    throw createHttpError(
+      500,
+      'Failed to send the email, please try again later.',
+    );
+  }
+};
+
+export const resetPassword = async (payload) => {
+  let entries;
+
+  try {
+    entries = jwt.verify(payload.token, env('JWT_SECRET'));
+    // eslint-disable-next-line no-unused-vars
+  } catch (err) {
+    throw createHttpError(401, 'Token is expired or invalid.');
+  }
+
+  const user = await UserCollection.findOne({
+    email: entries.email,
+    _id: entries.sub,
+  });
+
+  if (!user) {
+    throw createHttpError(404, 'User not found');
+  }
+
+  const encryptedPassword = await bcrypt.hash(payload.password, 10);
+
+  await UserCollection.updateOne(
+    { _id: user._id },
+    { password: encryptedPassword },
+  );
+
+  await SessionCollection.deleteMany({ userId: user._id });
 };

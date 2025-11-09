@@ -1,15 +1,13 @@
 import express from 'express';
 import { pinoHttp } from 'pino-http';
 import cors from 'cors';
-import dotenv from 'dotenv';
 import cookieParser from 'cookie-parser';
+import { env } from '../src/utils/env.js';
 import routers from './routers/index.js';
 import { errorHandler } from './middlewares/errorHandler.js';
 import { notFoundHandler } from './middlewares/notFoundHandler.js';
 
-dotenv.config();
-
-const PORT = process.env.PORT;
+const PORT = env('PORT', '3000');
 
 export const setupServer = () => {
   const app = express();
