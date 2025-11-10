@@ -14,6 +14,7 @@ import {
   createContactSchema,
   updateContactSchema,
 } from '../validation/contact.js';
+import { upload } from '../middlewares/uploadToCloudinary.js';
 
 const router = Router();
 
@@ -25,6 +26,7 @@ router.get('/:contactId', isValidId, ctrlWrapper(getContactByIdController));
 // Create contact
 router.post(
   '/',
+  upload.single('photo'),
   validateBody(createContactSchema),
   ctrlWrapper(createContactController),
 );
@@ -32,6 +34,7 @@ router.post(
 router.patch(
   '/:contactId',
   isValidId,
+  upload.single('photo'),
   validateBody(updateContactSchema),
   ctrlWrapper(updateContactController),
 );

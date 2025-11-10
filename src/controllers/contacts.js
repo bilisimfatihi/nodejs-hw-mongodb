@@ -9,6 +9,7 @@ import {
 import { parsePaginationParams } from '../utils/parsePaginationParams.js';
 import { parseSortParams } from '../utils/parseSortParams.js';
 import { parseFilterParams } from '../utils/parseFilterParams.js';
+import cloudinary from '../utils/saveFileToCloudinary.js';
 
 export const getContactsController = async (req, res) => {
   const { page, perPage } = parsePaginationParams(req.query);
@@ -58,12 +59,36 @@ export const createContactController = async (req, res) => {
     );
   }
 
+  let photoUrl = null;
+
+  // Eğer dosya yüklendiyse Cloudinary'e gönder
+  if (req.file) {
+    try {
+      const result = await new Promise((resolve, reject) => {
+        const stream = cloudinary.uploader.upload_stream(
+          { folder: 'contacts' },
+          (error, result) => {
+            if (error) reject(error);
+            else resolve(result);
+          },
+        );
+        stream.end(req.file.buffer);
+      });
+
+      photoUrl = result.secure_url;
+    } catch (error) {
+      console.error('Cloudinary upload failed:', error);
+      throw createHttpError(500, 'Failed to upload image');
+    }
+  }
+
   const created = await createContact({
     name,
     phoneNumber,
     email,
     isFavourite,
     contactType,
+    photo: photoUrl,
     userId: req.user._id,
   });
 
@@ -77,6 +102,28 @@ export const createContactController = async (req, res) => {
 export const updateContactController = async (req, res) => {
   const { contactId } = req.params;
   const updateData = req.body;
+
+  // Eğer dosya yüklendiyse Cloudinary'e gönder
+  if (req.file) {
+    try {
+      const result = await new Promise((resolve, reject) => {
+        const stream = cloudinary.uploader.upload_stream(
+          { folder: 'contacts' },
+          (error, result) => {
+            if (error) reject(error);
+            else resolve(result);
+          },
+        );
+        stream.end(req.file.buffer);
+      });
+
+      updateData.photo = result.secure_url;
+    } catch (error) {
+      console.error('Cloudinary upload failed:', error);
+      throw createHttpError(500, 'Failed to upload image');
+    }
+  }
+
   const updated = await updateContact(contactId, updateData);
   if (!updated) {
     throw createHttpError(404, 'Contact not found');
